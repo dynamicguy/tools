@@ -13,19 +13,25 @@ import pickle
 import pandas as pd
 import operator
 from itertools import groupby
+
 # ----------------------------------------------------------------------------------------------------------------------
 def find_nearest(array, value):
     return array[(numpy.abs(array - value)).argmin()]
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def smart_index(array, value):
     return numpy.array([i for i, v in enumerate(array) if (v == value)])
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 def remove_file(filename):
     if os.path.isfile(filename):
         os.remove(filename)
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def remove_files(path,list_of_masks='*.*',create=False):
+def remove_files(path, list_of_masks="*.*", create=False):
 
     if not os.path.exists(path):
         if create:
@@ -35,15 +41,17 @@ def remove_files(path,list_of_masks='*.*',create=False):
     filenames = get_filenames(path, list_of_masks)
     for f in filenames:
         if os.path.isdir(path + f):
-            #shutil.rmtree(path + f)
+            # shutil.rmtree(path + f)
             continue
         else:
             os.remove(path + f)
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def remove_folders(path):
 
-    if (path==None):
+    if path == None:
         return
 
     if not os.path.exists(path):
@@ -54,42 +62,48 @@ def remove_folders(path):
         if os.path.isdir(path + f):
             shutil.rmtree(path + f)
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def append_CSV(csv_record, filename_out, csv_header=None, delim ='\t'):
+def append_CSV(csv_record, filename_out, csv_header=None, delim="\t"):
 
     if os.path.exists(filename_out):
-        mode = 'a'
+        mode = "a"
     else:
-        mode = 'w'
+        mode = "w"
 
-    with open(filename_out, mode, encoding='utf-8') as f:
-        if mode=='w' and csv_header is not None:
+    with open(filename_out, mode, encoding="utf-8") as f:
+        if mode == "w" and csv_header is not None:
             for i, each in enumerate(csv_header):
                 f.write(str(each))
                 if i != len(csv_header) - 1:
                     f.write(delim)
-            f.write('\n')
+            f.write("\n")
 
-        if csv_record is not None and len(csv_record)>0:
-            for i,each in enumerate(csv_record):
+        if csv_record is not None and len(csv_record) > 0:
+            for i, each in enumerate(csv_record):
                 if type(each) is str:
                     f.write(each)
                 else:
-                    f.write('%2.1f'%float(each))
+                    f.write("%2.1f" % float(each))
 
-                if i!=len(csv_record)-1:
+                if i != len(csv_record) - 1:
                     f.write(delim)
 
-            f.write('\n')
+            f.write("\n")
 
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def get_filenames(path_input,list_of_masks):
+def get_filenames(path_input, list_of_masks):
     local_filenames = []
-    for mask in list_of_masks.split(','):
+    for mask in list_of_masks.split(","):
         local_filenames += fnmatch.filter(listdir(path_input), mask)
 
     return local_filenames
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def get_next_folder_out(base_folder_out):
     sub_folders = get_sub_folder_from_folder(base_folder_out)
@@ -98,29 +112,32 @@ def get_next_folder_out(base_folder_out):
         sub_folders = numpy.sort(sub_folders)
         sub_folder_out = str(sub_folders[-1] + 1)
     else:
-        sub_folder_out = '0'
-    return base_folder_out + sub_folder_out + '/'
+        sub_folder_out = "0"
+    return base_folder_out + sub_folder_out + "/"
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def save_flatarrays_as_images(path, cols, rows, array, labels=None, filenames=None, descriptions=None):
+def save_flatarrays_as_images(
+    path, cols, rows, array, labels=None, filenames=None, descriptions=None
+):
 
     if not os.path.exists(path):
         os.makedirs(path)
 
     if descriptions is not None:
-        f_handle = open(path+"descript.ion", "a+")
+        f_handle = open(path + "descript.ion", "a+")
 
-    if(array.ndim ==2):
-        N=array.shape[0]
+    if array.ndim == 2:
+        N = array.shape[0]
     else:
-        N=1
+        N = 1
 
-    for i in range(0,N):
+    for i in range(0, N):
 
-        if(array.ndim == 2):
+        if array.ndim == 2:
             arr = array[i]
             if descriptions is not None:
                 description = descriptions[i]
-
 
             if filenames is not None:
                 short_name = filenames[i]
@@ -137,13 +154,11 @@ def save_flatarrays_as_images(path, cols, rows, array, labels=None, filenames=No
             else:
                 short_name = "%s_%05d.bmp" % (labels, i)
 
-
-        #img= toimage(arr.reshape(rows, cols).astype(int)).convert('RGB')
-        #img.save(path + short_name)
+        # img= toimage(arr.reshape(rows, cols).astype(int)).convert('RGB')
+        # img.save(path + short_name)
         arr = arr.reshape(rows, cols)
-        arr/=numpy.max(arr)/255.0
-        cv2.imwrite(path + short_name,arr)
-
+        arr /= numpy.max(arr) / 255.0
+        cv2.imwrite(path + short_name, arr)
 
         if descriptions is not None:
             f_handle.write("%s %s\n" % (short_name, description))
@@ -153,44 +168,50 @@ def save_flatarrays_as_images(path, cols, rows, array, labels=None, filenames=No
 
     return
 
+
 # ----------------------------------------------------------------------------------------------------------------------
-def save_raw_vec(vec, filename,mode=(os.O_RDWR|os.O_APPEND),fmt='%d',delim=' '):
+def save_raw_vec(vec, filename, mode=(os.O_RDWR | os.O_APPEND), fmt="%d", delim=" "):
 
     if not os.path.isfile(filename):
         mode = os.O_RDWR | os.O_CREAT
 
-    f_handle = os.open(filename,mode)
+    f_handle = os.open(filename, mode)
 
     L = len(vec)
     s = ""
-    for i in range(L-1):
-        value = ((fmt+delim) % vec[i]).encode()
-        os.write(f_handle,value)
+    for i in range(L - 1):
+        value = ((fmt + delim) % vec[i]).encode()
+        os.write(f_handle, value)
 
-    value = ((fmt+'\n') % vec[L-1]).encode()
+    value = ((fmt + "\n") % vec[L - 1]).encode()
     os.write(f_handle, value)
     os.close(f_handle)
 
     return
-# ----------------------------------------------------------------------------------------------------------------------
-def save_mat(mat, filename,fmt='%s',delim='\t'):
-    numpy.savetxt(filename, mat,fmt=fmt,delimiter=delim)
-    return
-# ----------------------------------------------------------------------------------------------------------------------
-def save_data_to_feature_file_float(filename,array,target):
 
-    m = numpy.array(array).astype('float32')
-    v = numpy.matrix(target).astype('float32')
-    mat = numpy.concatenate((v.T,m),axis=1)
-    #print(mat)
-    numpy.savetxt(filename, mat, fmt='%+2.2f',delimiter='\t')
-    return
 
 # ----------------------------------------------------------------------------------------------------------------------
-def count_columns(filename,delim='\t'):
+def save_mat(mat, filename, fmt="%s", delim="\t"):
+    numpy.savetxt(filename, mat, fmt=fmt, delimiter=delim)
+    return
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def save_data_to_feature_file_float(filename, array, target):
+
+    m = numpy.array(array).astype("float32")
+    v = numpy.matrix(target).astype("float32")
+    mat = numpy.concatenate((v.T, m), axis=1)
+    # print(mat)
+    numpy.savetxt(filename, mat, fmt="%+2.2f", delimiter="\t")
+    return
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def count_columns(filename, delim="\t"):
 
     C = []
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         for line in f:
             line = line.strip()
             if len(line) > 0:
@@ -199,89 +220,105 @@ def count_columns(filename,delim='\t'):
 
     C = numpy.array(C)
     return C.max()
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def count_lines(filename):
-    f = open(filename, 'rb')
+    f = open(filename, "rb")
     lines = 0
     buf_size = 1024 * 1024
     read_f = f.raw.read
 
     buf = read_f(buf_size)
     while buf:
-        lines += buf.count(b'\n')
+        lines += buf.count(b"\n")
         buf = read_f(buf_size)
 
     f.close()
 
     return lines
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def get_lines(filename,delim='\t',start=None,end=None):
+def get_lines(filename, delim="\t", start=None, end=None):
 
     lines = []
-    with open(filename, 'r') as f:
-        for i,line in enumerate(f):
+    with open(filename, "r") as f:
+        for i, line in enumerate(f):
             line = line.strip()
             if len(line) > 0:
-                if (start is not None and i < start):
+                if start is not None and i < start:
                     continue
-                if  (end is not None and i>=end):
+                if end is not None and i >= end:
                     continue
                 lines.append(line.split(delim))
 
     return lines
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def get_columns(filename,delim='\t',start=None,end=None):
+def get_columns(filename, delim="\t", start=None, end=None):
 
     columns = []
-    with open(filename, 'r') as f:
-        for i,line in enumerate(f):
+    with open(filename, "r") as f:
+        for i, line in enumerate(f):
             line = line.strip()
-            if len(line) > 0 :
+            if len(line) > 0:
                 columns.append(line.split(delim)[start:end])
 
     columns = numpy.array(columns)
 
     return columns
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def load_mat(filename, dtype=numpy.chararray, delim='\t'):
+def load_mat(filename, dtype=numpy.chararray, delim="\t"):
     N = count_lines(filename)
     mat = []
 
-    if N==0:
+    if N == 0:
         return mat
-    #elif N==1:
+    # elif N==1:
     #    mat  = numpy.array([numpy.genfrpickleomtxt(filename, dtype=dtype, delimiter=delim)])
     else:
         mat = numpy.genfromtxt(filename, dtype=dtype, delimiter=delim)
     return mat
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def load_mat_pd(filename, dtype=numpy.str, delim='\t', lines=None):
+def load_mat_pd(filename, dtype=numpy.str, delim="\t", lines=None):
     return pd.read_csv(filename, sep=delim).values
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def load_mat_var_size(filename,dtype=numpy.int,delim='\t'):
-    l=[]
-    with open(filename, 'r') as f:
+def load_mat_var_size(filename, dtype=numpy.int, delim="\t"):
+    l = []
+    with open(filename, "r") as f:
         for line in f:
             line = line.strip()
             if len(line) > 0:
                 l.append(line.split(delim))
     return l
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def my_print_sting(strng, space=[]):
-    if (strng.ndim != 1):
+    if strng.ndim != 1:
         return
 
     fm = "%s"
 
     for j in range(0, strng.shape[0]):
         s = (fm) % strng[j]
-        print(space + s, end=' ')
+        print(space + s, end=" ")
     print()
 
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def my_print_vector(mat):
-    if (mat.ndim != 1):
+    if mat.ndim != 1:
         return
 
     mx = mat.max()
@@ -304,20 +341,24 @@ def my_print_vector(mat):
     print()
 
     return
-# ----------------------------------------------------------------------------------------------------------------------
-def my_print_int(mat, rows=None, cols=None,file = None):
 
-    if (mat.ndim == 1):
+
+# ----------------------------------------------------------------------------------------------------------------------
+def my_print_int(mat, rows=None, cols=None, file=None):
+
+    if mat.ndim == 1:
         return my_print_vector(mat)
 
-    if (rows is not None):
+    if rows is not None:
         l = numpy.array([len(each) for each in rows]).max()
-        desc_r = numpy.array([" " * (l - len(each)) + each for each in rows]).astype(numpy.chararray)
+        desc_r = numpy.array([" " * (l - len(each)) + each for each in rows]).astype(
+            numpy.chararray
+        )
 
     mx = mat.max()
 
-    if (cols is not None):
-        mx = max(mx,cols.max())
+    if cols is not None:
+        mx = max(mx, cols.max())
 
     fm = "%1d"
     if mx >= 10:
@@ -329,74 +370,90 @@ def my_print_int(mat, rows=None, cols=None,file = None):
     if mx >= 10000:
         fm = "%5d"
 
-
-    if (cols is not None):
-        if (rows is not None):
-            print(" " * len(desc_r[0]) + ' |', end="",file=file)
+    if cols is not None:
+        if rows is not None:
+            print(" " * len(desc_r[0]) + " |", end="", file=file)
 
         for each in cols:
-            print((fm) % each, end=" ",file=file)
+            print((fm) % each, end=" ", file=file)
 
         print(file=file)
-        print("-" * (len(desc_r[0])+2), end="",file=file)
-        print("-" * cols.shape[0]*(int(fm[1])+1),file=file)
-
-
+        print("-" * (len(desc_r[0]) + 2), end="", file=file)
+        print("-" * cols.shape[0] * (int(fm[1]) + 1), file=file)
 
     mat.astype(int)
     for i in range(0, mat.shape[0]):
-        if (rows is not None):
-            print(desc_r[i] + ' |', end="",file=file)
+        if rows is not None:
+            print(desc_r[i] + " |", end="", file=file)
 
         for j in range(0, mat.shape[1]):
-            print(((fm) % mat[i, j]), end=" ",file=file)
+            print(((fm) % mat[i, j]), end=" ", file=file)
         print(file=file)
 
-    if (cols is not None):
+    if cols is not None:
         print("-" * (len(desc_r[0]) + 2), end="", file=file)
         print("-" * cols.shape[0] * (int(fm[1]) + 1), file=file)
 
     return
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 def get_sub_folder_from_folder(path):
-    subfolders = [f.path for f in os.scandir(path) if f.is_dir() ]
-    subfolders = [subfolders[i].split(path)[1] for i in range(0,len(subfolders))]
+    subfolders = [f.path for f in os.scandir(path) if f.is_dir()]
+    subfolders = [subfolders[i].split(path)[1] for i in range(0, len(subfolders))]
 
     return subfolders
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def count_images_from_folder(path, mask="*.bmp"):
 
     filenames = []
-    i=0
+    i = 0
 
-    for image_name in fnmatch.filter(listdir(path), mask) :
+    for image_name in fnmatch.filter(listdir(path), mask):
         try:
             img = cv2.imread(path + image_name)
             filenames.append(image_name)
         except OSError:
-            i=i
+            i = i
 
     return len(filenames)
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def load_aligned_images_from_folder(path, label, mask="*.bmp", exclusion_folder=None, limit=None, resize_W=None,resize_H=None,grayscaled=False):
+def load_aligned_images_from_folder(
+    path,
+    label,
+    mask="*.bmp",
+    exclusion_folder=None,
+    limit=None,
+    resize_W=None,
+    resize_H=None,
+    grayscaled=False,
+):
     exclusions = []
     if (exclusion_folder != None) and (os.path.exists(exclusion_folder)):
 
         for each in os.listdir(exclusion_folder):
-            exclusions.append(each[:len(each) - 6] + ".bmp")
+            exclusions.append(each[: len(each) - 6] + ".bmp")
 
     images = []
     filenames = []
     i = 0
     img = 0
-    for image_name in fnmatch.filter(listdir(path), mask) :
+    for image_name in fnmatch.filter(listdir(path), mask):
         if ((limit == None) or (i < limit)) and (image_name not in exclusions):
-            
-            img = cv2.imread(path + image_name) if grayscaled==False else cv2.imread(path + image_name,0)
-            if img is None:continue
-            if ((resize_W is not None) and (resize_H is not None)):
-                img = cv2.resize(img,(resize_W,resize_H))
+
+            img = (
+                cv2.imread(path + image_name)
+                if grayscaled == False
+                else cv2.imread(path + image_name, 0)
+            )
+            if img is None:
+                continue
+            if (resize_W is not None) and (resize_H is not None):
+                img = cv2.resize(img, (resize_W, resize_H))
 
             images.append(img)
             filenames.append(image_name)
@@ -408,169 +465,222 @@ def load_aligned_images_from_folder(path, label, mask="*.bmp", exclusion_folder=
     labels = numpy.full(images.shape[0], label)
 
     return images, labels, filenames
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def preditions_to_mat(labels_fact, labels_pred,patterns):
-    mat = confusion_matrix(numpy.array(labels_fact).astype(numpy.int), numpy.array(labels_pred).astype(numpy.int))
-    accuracy = [100-100*mat[i,i]/numpy.sum(mat[i,:]) for i in range (0,mat.shape[0])]
+def preditions_to_mat(labels_fact, labels_pred, patterns):
+    mat = confusion_matrix(
+        numpy.array(labels_fact).astype(numpy.int),
+        numpy.array(labels_pred).astype(numpy.int),
+    )
+    accuracy = [
+        100 - 100 * mat[i, i] / numpy.sum(mat[i, :]) for i in range(0, mat.shape[0])
+    ]
 
     idx = numpy.argsort(accuracy).astype(int)
 
-    descriptions = numpy.array([('%s %3d%%' % (patterns[i], 100-accuracy[i])) for i in range (0,mat.shape[0])])
+    descriptions = numpy.array(
+        [
+            ("%s %3d%%" % (patterns[i], 100 - accuracy[i]))
+            for i in range(0, mat.shape[0])
+        ]
+    )
 
     a_test = numpy.zeros(labels_fact.shape[0])
     a_pred = numpy.zeros(labels_fact.shape[0])
 
-    for i in range(0,a_test.shape[0]):
-        a_test[i] = smart_index(idx ,int(labels_fact[i]))[0]
+    for i in range(0, a_test.shape[0]):
+        a_test[i] = smart_index(idx, int(labels_fact[i]))[0]
         a_pred[i] = smart_index(idx, int(labels_pred[i]))[0]
 
-    mat2 = confusion_matrix(numpy.array(a_test).astype(numpy.int), numpy.array(a_pred).astype(numpy.int))
-    ind = numpy.array([('%3d' % i) for i in range(0, idx.shape[0])])
+    mat2 = confusion_matrix(
+        numpy.array(a_test).astype(numpy.int), numpy.array(a_pred).astype(numpy.int)
+    )
+    ind = numpy.array([("%3d" % i) for i in range(0, idx.shape[0])])
 
     l = numpy.array([len(each) for each in descriptions]).max()
-    descriptions = numpy.array([" " * (l - len(each)) + each for each in descriptions]).astype(numpy.chararray)
-    descriptions = [ind[i] + ' | ' + descriptions[idx[i]] for i in range(0, idx.shape[0])]
+    descriptions = numpy.array(
+        [" " * (l - len(each)) + each for each in descriptions]
+    ).astype(numpy.chararray)
+    descriptions = [
+        ind[i] + " | " + descriptions[idx[i]] for i in range(0, idx.shape[0])
+    ]
 
-    return mat2,descriptions, patterns[idx]
+    return mat2, descriptions, patterns[idx]
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def print_accuracy(labels_fact, labels_pred,patterns,filename = None):
+def print_accuracy(labels_fact, labels_pred, patterns, filename=None):
 
-    if (filename!=None):
-        file = open(filename, 'w')
+    if filename != None:
+        file = open(filename, "w")
     else:
         file = None
 
-    mat,descriptions,sorted_labels = preditions_to_mat(labels_fact, labels_pred,patterns)
-    ind = numpy.array([('%3d' % i) for i in range(0, mat.shape[0])])
+    mat, descriptions, sorted_labels = preditions_to_mat(
+        labels_fact, labels_pred, patterns
+    )
+    ind = numpy.array([("%3d" % i) for i in range(0, mat.shape[0])])
     TP = float(numpy.trace(mat))
 
-    my_print_int(numpy.array(mat).astype(int),rows=descriptions,cols=ind.astype(int),file = file)
+    my_print_int(
+        numpy.array(mat).astype(int), rows=descriptions, cols=ind.astype(int), file=file
+    )
 
-    print("Accuracy = %d/%d = %1.4f" % (TP, float(numpy.sum(mat)), float(TP/numpy.sum(mat))),file=file)
-    print("Fails    = %d" % float(numpy.sum(mat) - TP),file=file)
+    print(
+        "Accuracy = %d/%d = %1.4f"
+        % (TP, float(numpy.sum(mat)), float(TP / numpy.sum(mat))),
+        file=file,
+    )
+    print("Fails    = %d" % float(numpy.sum(mat) - TP), file=file)
     print(file=file)
 
-    if (filename != None):
+    if filename != None:
         file.close()
     return
-# ----------------------------------------------------------------------------------------------------------------------
-def print_reject_rate(labels_fact, labels_pred, labels_prob,filename=None):
 
-    hit = numpy.array([labels_fact[i] == labels_pred[i] for i in range(0, labels_fact.shape[0])]).astype(int)
-    mat = numpy.vstack((labels_prob,hit))
+
+# ----------------------------------------------------------------------------------------------------------------------
+def print_reject_rate(labels_fact, labels_pred, labels_prob, filename=None):
+
+    hit = numpy.array(
+        [labels_fact[i] == labels_pred[i] for i in range(0, labels_fact.shape[0])]
+    ).astype(int)
+    mat = numpy.vstack((labels_prob, hit))
     mat = mat.T
-    idx = numpy.argsort(mat[:,0]).astype(int)
-    mat2 = numpy.vstack((mat[:,0][idx],mat[:,1][idx]))
+    idx = numpy.argsort(mat[:, 0]).astype(int)
+    mat2 = numpy.vstack((mat[:, 0][idx], mat[:, 1][idx]))
     mat2 = mat2.T
 
-
-    if (filename!=None):
-        file = open(filename, 'w')
+    if filename != None:
+        file = open(filename, "w")
     else:
         file = None
 
-    decisions,accuracy,th  = [],[],[]
+    decisions, accuracy, th = [], [], []
 
-    for i in range(0,mat2.shape[0]):
-        dec = mat2.shape[0]-i
-        hits = numpy.sum(mat2[i:,1])
-        decisions.append(float(dec/mat2.shape[0]))
-        #accuracy.append(float(hits/dec))
-        accuracy.append(int(100*hits/dec)/100)
-        th.append(mat2[i,0])
+    for i in range(0, mat2.shape[0]):
+        dec = mat2.shape[0] - i
+        hits = numpy.sum(mat2[i:, 1])
+        decisions.append(float(dec / mat2.shape[0]))
+        # accuracy.append(float(hits/dec))
+        accuracy.append(int(100 * hits / dec) / 100)
+        th.append(mat2[i, 0])
 
     decisions2, accuracy2, th2 = [], [], []
 
-    if (filename == None):
+    if filename == None:
         print()
         print()
 
-    print('Dcsns\tAccrcy\tCnfdnc', file=file)
+    print("Dcsns\tAccrcy\tCnfdnc", file=file)
     for each in numpy.unique(accuracy):
-        idx = smart_index(accuracy,each)[0]
-        print('%1.2f\t%1.2f\t%1.2f' % (decisions[idx],accuracy[idx],th[idx]),file=file)
+        idx = smart_index(accuracy, each)[0]
+        print(
+            "%1.2f\t%1.2f\t%1.2f" % (decisions[idx], accuracy[idx], th[idx]), file=file
+        )
 
-    if (filename!=None):
+    if filename != None:
         file.close()
 
-
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
-def print_top_fails(labels_fact, labels_pred, patterns,filename = None):
 
-    if (filename!=None):
-        file = open(filename, 'w')
+def print_top_fails(labels_fact, labels_pred, patterns, filename=None):
+
+    if filename != None:
+        file = open(filename, "w")
     else:
         file = None
 
-    mat = confusion_matrix(numpy.array(labels_fact).astype(numpy.int), numpy.array(labels_pred).astype(numpy.int))
+    mat = confusion_matrix(
+        numpy.array(labels_fact).astype(numpy.int),
+        numpy.array(labels_pred).astype(numpy.int),
+    )
 
     error, class1, class2 = [], [], []
-    for i in range (0,mat.shape[0]):
+    for i in range(0, mat.shape[0]):
         for j in range(0, mat.shape[1]):
-            if(i != j):
-                error.append(mat[i,j])
+            if i != j:
+                error.append(mat[i, j])
                 class1.append(i)
                 class2.append(j)
 
     error = numpy.array(error)
     idx = numpy.argsort(-error).astype(int)
 
-    if (filename == None):
+    if filename == None:
         print()
-        print('Typical fails:')
+        print("Typical fails:")
 
+    for i in range(0, error.shape[0]):
+        if error[idx[i]] > 0:
+            print(
+                "%3d %s %s"
+                % (error[idx[i]], patterns[class1[idx[i]]], patterns[class2[idx[i]]]),
+                file=file,
+            )
 
-    for i in range(0,error.shape[0]):
-        if(error[idx[i]]>0):
-            print('%3d %s %s' % (error[idx[i]],patterns[class1[idx[i]]],patterns[class2[idx[i]]]),file=file)
-
-    if (filename != None):
+    if filename != None:
         file.close()
 
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
-def split_annotation_file(folder_annotation,file_input,file_part1,file_part2, ratio=0.5,delim=' ',limit=1000000):
 
-    with open(file_input) as f: lines = f.readlines()
+def split_annotation_file(
+    folder_annotation,
+    file_input,
+    file_part1,
+    file_part2,
+    ratio=0.5,
+    delim=" ",
+    limit=1000000,
+):
+
+    with open(file_input) as f:
+        lines = f.readlines()
     header = lines[0]
     lines = lines[1:]
 
-    if limit<len(lines):
-        idx = numpy.random.choice(len(lines),limit)
+    if limit < len(lines):
+        idx = numpy.random.choice(len(lines), limit)
         lines = numpy.array(lines)[idx]
 
-
-
-    part1, part2 = [],[]
-    part1.append(header.split('\n')[0])
-    part2.append(header.split('\n')[0])
+    part1, part2 = [], []
+    part1.append(header.split("\n")[0])
+    part2.append(header.split("\n")[0])
 
     for each in lines:
-        each = each.split('\n')[0]
+        each = each.split("\n")[0]
         split = each.split(delim)
-        #if not os.path.isfile(folder_annotation + split[0]):
+        # if not os.path.isfile(folder_annotation + split[0]):
         #    print('ERROR: ' + folder_annotation + split[0])
         #    continue
 
-        #image = Image.open(folder_annotation + split[0])
-        #if image is None:
+        # image = Image.open(folder_annotation + split[0])
+        # if image is None:
         #    print('ERROR: ' + folder_annotation + split[0])
         #    continue
 
-        if (random.random() > ratio):
+        if random.random() > ratio:
             part1.append(each)
         else:
             part2.append(each)
-
 
     save_mat(part1, file_part1, delim=delim)
     save_mat(part2, file_part2, delim=delim)
 
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
+
 
 def split_samples(input_folder, folder_part1, folder_part2, ratio=0.5):
     print("Split samples..")
@@ -596,39 +706,45 @@ def split_samples(input_folder, folder_part1, folder_part2, ratio=0.5):
             print(f)
             file_list = [f for f in os.listdir(folder_name)]
             for file_name in file_list:
-                if (random.random() > ratio):
-                    copyfile(folder_name + '/' + file_name, folder_part1 + f + '/' + file_name)
+                if random.random() > ratio:
+                    copyfile(
+                        folder_name + "/" + file_name,
+                        folder_part1 + f + "/" + file_name,
+                    )
                 else:
-                    copyfile(folder_name + '/' + file_name, folder_part2 + f + '/' + file_name)
+                    copyfile(
+                        folder_name + "/" + file_name,
+                        folder_part2 + f + "/" + file_name,
+                    )
     return
 
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def save_labels(out_filename, filenames, labels,append=0,delim='\t'):
-    if filenames.shape[0]!= labels.shape[0]:
+def save_labels(out_filename, filenames, labels, append=0, delim="\t"):
+    if filenames.shape[0] != labels.shape[0]:
         return
 
-    if(append== 0):
+    if append == 0:
         f_handle = open(out_filename, "w")
         f_handle.write("header1%cheader2xx\n" % delim)
     else:
         f_handle = open(out_filename, "a")
 
-    for i in range(0,labels.shape[0]):
-        f_handle.write("%s%c%03d\n" % (filenames[i],delim,labels[i]))
-        #f_handle.write("%s%c%s\n" % (filenames[i],delim,labels[i]))
+    for i in range(0, labels.shape[0]):
+        f_handle.write("%s%c%03d\n" % (filenames[i], delim, labels[i]))
+        # f_handle.write("%s%c%s\n" % (filenames[i],delim,labels[i]))
 
     f_handle.close()
 
-    #if append>0:
-    #sort_labels(out_filename,delim)
+    # if append>0:
+    # sort_labels(out_filename,delim)
 
     return
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 def intersection(x11, x12, y11, y12, x21, x22, y21, y22):
-    if ((y12 < y21) or (y22 < y11) or (x22 < x11) or (x12 < x21)):
+    if (y12 < y21) or (y22 < y11) or (x22 < x11) or (x12 < x21):
         return 0
     else:
         dx = min(x12, x22) - max(x11, x21)
@@ -636,40 +752,44 @@ def intersection(x11, x12, y11, y12, x21, x22, y21, y22):
         return dx * dy
     return
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 def list_to_chararray(input_list):
     bufer = numpy.array(list(input_list)).astype(numpy.chararray)
-    bufer = ''.join(bufer)
+    bufer = "".join(bufer)
     return bufer
 
-# ---------------------------------------------------------------------------------------------------------------------
-def get_roc_data_from_scores_file(path_scores,has_header=False):
 
-    X = load_mat(path_scores, numpy.chararray, '\t')
+# ---------------------------------------------------------------------------------------------------------------------
+def get_roc_data_from_scores_file(path_scores, has_header=False):
+
+    X = load_mat(path_scores, numpy.chararray, "\t")
 
     if has_header:
-        header = numpy.array(X[0,:],dtype=numpy.str)
-        X  = X[1:,:]
+        header = numpy.array(X[0, :], dtype=numpy.str)
+        X = X[1:, :]
     else:
         header = None
-        X = X[:,:]
+        X = X[:, :]
 
-    labels = (X[:, 0]).astype('float32')
-    scores = X[:, 1:].astype('float32')
+    labels = (X[:, 0]).astype("float32")
+    scores = X[:, 1:].astype("float32")
 
     fpr, tpr, thresholds = metrics.roc_curve(labels, scores)
     roc_auc = auc(fpr, tpr)
 
-    return tpr,fpr,roc_auc
+    return tpr, fpr, roc_auc
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def get_roc_data_from_scores_file_v2(path_scores_pos,path_scores_neg,delim='\t'):
+def get_roc_data_from_scores_file_v2(path_scores_pos, path_scores_neg, delim="\t"):
 
     data = load_mat(path_scores_pos, numpy.chararray, delim)
-    s1= data[1:, 1:].astype('float32')
-    l1 = numpy.full(len(s1),1)
+    s1 = data[1:, 1:].astype("float32")
+    l1 = numpy.full(len(s1), 1)
 
     data = load_mat(path_scores_neg, numpy.chararray, delim)
-    s0= data[1:, 1:].astype('float32')
+    s0 = data[1:, 1:].astype("float32")
     l0 = numpy.full(len(s0), 0)
 
     labels = numpy.hstack((l0, l1))
@@ -678,28 +798,33 @@ def get_roc_data_from_scores_file_v2(path_scores_pos,path_scores_neg,delim='\t')
     fpr, tpr, thresholds = metrics.roc_curve(labels, scores)
     roc_auc = auc(fpr, tpr)
 
-    return tpr,fpr,roc_auc
+    return tpr, fpr, roc_auc
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def from_categorical(Y_2d):
     u = numpy.unique(Y_2d)
     Y = numpy.zeros(Y_2d.shape[0]).astype(int)
     for i in range(0, Y.shape[0]):
-        #debug = Y_2d[i]
-        index = smart_index(Y_2d[i],1)[0]
-        Y[i]=index
+        # debug = Y_2d[i]
+        index = smart_index(Y_2d[i], 1)[0]
+        Y[i] = index
 
     return Y
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def to_categorical(Y):
     u = numpy.unique(Y)
-    Y_2d = numpy.zeros((Y.shape[0],u.shape[0])).astype(int)
+    Y_2d = numpy.zeros((Y.shape[0], u.shape[0])).astype(int)
     for i in range(0, Y.shape[0]):
-        index = smart_index(u,Y[i])
-        Y_2d[i,index]=1
+        index = smart_index(u, Y[i])
+        Y_2d[i, index] = 1
     return Y_2d
 
+
 # --------------------------------------------------------------------------------------------------------------------
-def save_MNIST_digits(out_path,limit=200):
+def save_MNIST_digits(out_path, limit=200):
 
     digits = datasets.load_digits()
     data = digits.images.reshape((len(digits.images), -1))
@@ -708,49 +833,58 @@ def save_MNIST_digits(out_path,limit=200):
     remove_folders(out_path)
 
     for i in range(0, 10):
-        os.makedirs(out_path + '/' + ('%d' % i))
+        os.makedirs(out_path + "/" + ("%d" % i))
 
     idx = []
-    filenames=[]
+    filenames = []
     cntr = numpy.zeros(10)
 
-
-    for i in range(0,data.shape[0]):
+    for i in range(0, data.shape[0]):
         key = digits.target[i].astype(int)
         name = key.astype(numpy.str)
-        if cntr[key]<limit:
+        if cntr[key] < limit:
             idx.append(i)
-            filenames.append(name + '/' + name + ('_%03d' % cntr[key]) + '.png')
+            filenames.append(name + "/" + name + ("_%03d" % cntr[key]) + ".png")
             cntr[key] += 1
 
-    save_flatarrays_as_images(out_path, 8,8, data[idx], labels=digits.target[idx], filenames=filenames)
+    save_flatarrays_as_images(
+        out_path, 8, 8, data[idx], labels=digits.target[idx], filenames=filenames
+    )
 
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def numerical_devisor(n):
 
-    for i in numpy.arange(int(math.sqrt(n))+1,1,-1):
-        if n%i==0:
+    for i in numpy.arange(int(math.sqrt(n)) + 1, 1, -1):
+        if n % i == 0:
             return i
 
     return n
-#--------------------------------------------------------------------------------------------------------------------------
-def load_if_exists(folder_in,suffix,name,use_cache=False):
+
+
+# --------------------------------------------------------------------------------------------------------------------------
+def load_if_exists(folder_in, suffix, name, use_cache=False):
     X, success = None, False
 
-    if (folder_in is None) or (suffix is None) or (name is None):return X,success
+    if (folder_in is None) or (suffix is None) or (name is None):
+        return X, success
 
-    filename_in = folder_in+suffix+name
+    filename_in = folder_in + suffix + name
 
-    if os.path.isfile(filename_in)==False: return X, success
+    if os.path.isfile(filename_in) == False:
+        return X, success
 
     with open(filename_in, "rb") as fp:
         X = pickle.load(fp)
         success = True
 
-    return X,success
+    return X, success
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def write_cache(folder_out,suffix,name,X):
+def write_cache(folder_out, suffix, name, X):
     if (folder_out is None) or (suffix is None) or (name is None):
         return
 
@@ -759,30 +893,44 @@ def write_cache(folder_out,suffix,name,X):
     with open(filename_out, "wb") as fp:
         pickle.dump(X, fp)
     return
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def min_element_by_value(dct):
     return min(dct.items(), key=operator.itemgetter(1))
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def min_element_by_key(dct):
     return min(dct.items(), key=operator.itemgetter(0))
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def max_element_by_value(dct):
     return max(dct.items(), key=operator.itemgetter(1))
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def max_element_by_key(dct):
     return max(dct.items(), key=operator.itemgetter(0))
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def sorted_elements_by_value(dct,descending=False):
+def sorted_elements_by_value(dct, descending=False):
     if descending:
         listofTuples = sorted(dct.items(), key=lambda x: -x[1])
     else:
-        listofTuples = sorted(dct.items(), key=lambda x:  x[1])
+        listofTuples = sorted(dct.items(), key=lambda x: x[1])
     return listofTuples
-# ---------------------------------------------------------------------------------------------------------------------
-def switch_comumns(filename_in,filename_out,idx,has_header=False,delim='\t',max_line=None):
-    g = open(filename_out, 'w')
 
-    with open(filename_in, 'r') as f:
+
+# ---------------------------------------------------------------------------------------------------------------------
+def switch_comumns(
+    filename_in, filename_out, idx, has_header=False, delim="\t", max_line=None
+):
+    g = open(filename_out, "w")
+
+    with open(filename_in, "r") as f:
         for i, line in enumerate(f):
 
             if has_header and i == 0:
@@ -791,22 +939,34 @@ def switch_comumns(filename_in,filename_out,idx,has_header=False,delim='\t',max_
 
             line = line.strip()
             if len(line) > 0:
-                X = numpy.array(line.split(delim),dtype=numpy.int)
-                X=X[idx]
+                X = numpy.array(line.split(delim), dtype=numpy.int)
+                X = X[idx]
 
                 for x in X:
                     g.write("%d\t" % x)
 
                 g.write("\n")
-                if (max_line is not None) and (i>=max_line-1):
+                if (max_line is not None) and (i >= max_line - 1):
                     break
 
     g.close()
 
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def get_longest_run_position_len(L):
-    if numpy.all(L<=0):return -1,-1
-    xx = max(((lambda y: (y[0][0], len(y)))(list(g)) for k, g in groupby(enumerate(L), lambda x: x[1]) if k),key=lambda z: z[1])
+    if numpy.all(L <= 0):
+        return -1, -1
+    xx = max(
+        (
+            (lambda y: (y[0][0], len(y)))(list(g))
+            for k, g in groupby(enumerate(L), lambda x: x[1])
+            if k
+        ),
+        key=lambda z: z[1],
+    )
     return xx
+
+
 # ----------------------------------------------------------------------------------------------------------------------

@@ -2,72 +2,93 @@ import math
 import cv2
 import numpy
 from keras.models import Model
-from keras.layers.convolutional import  Conv2D,UpSampling2D, Conv2DTranspose,Cropping2D
-#--------------------------------------------------------------------------------------------------------------------------
+from keras.layers.convolutional import Conv2D, UpSampling2D, Conv2DTranspose, Cropping2D
+
+# --------------------------------------------------------------------------------------------------------------------------
 import tools_image
 
 # ----------------------------------------------------------------------------------------------------------------------
-def inverce_weight(W,b_size):
+def inverce_weight(W, b_size):
 
     F = W[0]
 
-    if len(W[1])==b_size:
+    if len(W[1]) == b_size:
         B = W[1].copy()
     else:
-        B = numpy.full(b_size,W[1].mean(),numpy.float32)
-    return [F,B]
-# ----------------------------------------------------------------------------------------------------------------------
-def apply_blue_shift(image,mode=0):
+        B = numpy.full(b_size, W[1].mean(), numpy.float32)
+    return [F, B]
 
-    if (mode == 0):
+
+# ----------------------------------------------------------------------------------------------------------------------
+def apply_blue_shift(image, mode=0):
+
+    if mode == 0:
         red, green, blue = 0.95, 0.95, 1.05
     else:
         red, green, blue = 1.05, 1.05, 0.95
 
-    image[:,:, 0] = numpy.clip(image[:,:, 0] * blue, 0, 255)
-    image[:,:, 1] = numpy.clip(image[:,:, 1] * green, 0, 255)
-    image[:,:, 2] = numpy.clip(image[:,:, 2] * red, 0, 255)
+    image[:, :, 0] = numpy.clip(image[:, :, 0] * blue, 0, 255)
+    image[:, :, 1] = numpy.clip(image[:, :, 1] * green, 0, 255)
+    image[:, :, 2] = numpy.clip(image[:, :, 2] * red, 0, 255)
 
     return
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def colorize_chess(image, W, H):
 
-    if len(image.shape)==2:
+    if len(image.shape) == 2:
         image_color = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     else:
         image_color = image
-    r, c = numpy.meshgrid(numpy.linspace(0, H - 1, num=H), numpy.linspace(0, W - 1, num=W))
+    r, c = numpy.meshgrid(
+        numpy.linspace(0, H - 1, num=H), numpy.linspace(0, W - 1, num=W)
+    )
     r, c = r.astype(numpy.int), c.astype(numpy.int)
-
 
     for R in numpy.arange(0, image.shape[0], H):
         for C in numpy.arange(0, image.shape[1], W):
-            if ((int(R/H)+int(C/W))%2 == 0):
+            if (int(R / H) + int(C / W)) % 2 == 0:
                 red, green, blue = 0.95, 0.95, 1.05
             else:
                 red, green, blue = 1.05, 1.05, 0.95
-            image_color[R + r, C + c, 0] = numpy.clip(image_color[R + r, C + c, 0] * blue, 0, 255)
-            image_color[R + r, C + c, 1] = numpy.clip(image_color[R + r, C + c, 1] * green, 0, 255)
-            image_color[R + r, C + c, 2] = numpy.clip(image_color[R + r, C + c, 2] * red, 0, 255)
+            image_color[R + r, C + c, 0] = numpy.clip(
+                image_color[R + r, C + c, 0] * blue, 0, 255
+            )
+            image_color[R + r, C + c, 1] = numpy.clip(
+                image_color[R + r, C + c, 1] * green, 0, 255
+            )
+            image_color[R + r, C + c, 2] = numpy.clip(
+                image_color[R + r, C + c, 2] * red, 0, 255
+            )
 
     return image_color
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def tensor_gray_1D_to_image(tensor,orientation = 'landscape'):
+def tensor_gray_1D_to_image(tensor, orientation="landscape"):
 
     rows = tools_image.numerical_devisor(tensor.shape[0])
     cols = int(tensor.shape[0] / rows)
 
-    if orientation=='landscape':
-        image = numpy.reshape(tensor,(numpy.minimum(rows,cols),numpy.maximum(rows, cols)))
+    if orientation == "landscape":
+        image = numpy.reshape(
+            tensor, (numpy.minimum(rows, cols), numpy.maximum(rows, cols))
+        )
     else:
-        image = numpy.reshape(tensor, (numpy.maximum(rows, cols), numpy.minimum(rows, cols)))
-
+        image = numpy.reshape(
+            tensor, (numpy.maximum(rows, cols), numpy.minimum(rows, cols))
+        )
 
     return image
-# ----------------------------------------------------------------------------------------------------------------------
-def tensor_gray_3D_to_image(tensor, do_colorize = False,do_scale = False,force_rows_dim2 = None):
 
-    if force_rows_dim2  is None:
+
+# ----------------------------------------------------------------------------------------------------------------------
+def tensor_gray_3D_to_image(
+    tensor, do_colorize=False, do_scale=False, force_rows_dim2=None
+):
+
+    if force_rows_dim2 is None:
         rows = tools_image.numerical_devisor(tensor.shape[2])
     else:
         rows = force_rows_dim2
@@ -76,53 +97,65 @@ def tensor_gray_3D_to_image(tensor, do_colorize = False,do_scale = False,force_r
     image = numpy.zeros((h * R, w * C), dtype=numpy.float32)
     for i in range(0, tensor.shape[2]):
         col, row = i % C, int(i / C)
-        image[h * row:h * row + h, w * col:w * col + w] = tensor[:, :, i]
+        image[h * row : h * row + h, w * col : w * col + w] = tensor[:, :, i]
 
     if do_colorize:
-        image = colorize_chess(image,tensor.shape[0],tensor.shape[1])
+        image = colorize_chess(image, tensor.shape[0], tensor.shape[1])
 
-    if do_scale==True:
+    if do_scale == True:
         image -= image.min()
         image *= 255 / image.max()
 
     return image.astype(dtype=numpy.uint8)
-# ---------------------------------------------------------------------------------------------------------------------
-def image_to_tensor_color_4D(image,shape):
-    tensor = numpy.zeros(shape,numpy.float32)
 
-    h,w =shape[0],shape[1]
+
+# ---------------------------------------------------------------------------------------------------------------------
+def image_to_tensor_color_4D(image, shape):
+    tensor = numpy.zeros(shape, numpy.float32)
+
+    h, w = shape[0], shape[1]
     rows = tools_image.numerical_devisor(shape[3])
     C = int(tensor.shape[3] / rows)
 
-    for i in range(0,96):
+    for i in range(0, 96):
         col, row = i % C, int(i / C)
-        tensor[:, :, :, i]=image[h * row:h * row + h, w * col:w * col + w]
+        tensor[:, :, :, i] = image[h * row : h * row + h, w * col : w * col + w]
 
     return tensor
-# ---------------------------------------------------------------------------------------------------------------------
-def tensor_color_4D_to_image(tensor,do_chess=False,force_rows_dim3=None,force_rows_dim2=None):
 
-    if force_rows_dim2  is None:
+
+# ---------------------------------------------------------------------------------------------------------------------
+def tensor_color_4D_to_image(
+    tensor, do_chess=False, force_rows_dim3=None, force_rows_dim2=None
+):
+
+    if force_rows_dim2 is None:
         rows = tools_image.numerical_devisor(tensor.shape[3])
     else:
         rows = force_rows_dim2
 
-
     h, w, R, C = tensor.shape[0], tensor.shape[1], rows, int(tensor.shape[3] / rows)
-    image = numpy.zeros((h * R,w * C, tensor.shape[2]),dtype=numpy.float32)
+    image = numpy.zeros((h * R, w * C, tensor.shape[2]), dtype=numpy.float32)
     for i in range(0, tensor.shape[3]):
         col, row = i % C, int(i / C)
         sub_image = tensor[:, :, :, i]
         if do_chess:
-            apply_blue_shift(sub_image,(col+row)%2)
-        image[h * row:h * row + h, w * col:w * col + w, :] = sub_image
-
+            apply_blue_shift(sub_image, (col + row) % 2)
+        image[h * row : h * row + h, w * col : w * col + w, :] = sub_image
 
     return image
-# ---------------------------------------------------------------------------------------------------------------------
-def tensor_gray_4D_to_image(tensor,do_colorize = False,do_scale=False,force_rows_dim3=None,force_rows_dim2=None):
 
-    sub_image = tensor_gray_3D_to_image(tensor[:, :, :, 0],force_rows_dim2)
+
+# ---------------------------------------------------------------------------------------------------------------------
+def tensor_gray_4D_to_image(
+    tensor,
+    do_colorize=False,
+    do_scale=False,
+    force_rows_dim3=None,
+    force_rows_dim2=None,
+):
+
+    sub_image = tensor_gray_3D_to_image(tensor[:, :, :, 0], force_rows_dim2)
     h, w = sub_image.shape[0], sub_image.shape[1]
 
     if force_rows_dim3 is None:
@@ -130,31 +163,32 @@ def tensor_gray_4D_to_image(tensor,do_colorize = False,do_scale=False,force_rows
     else:
         R = force_rows_dim3
 
-    C = int(tensor.shape[3]/R)
-
+    C = int(tensor.shape[3] / R)
 
     if do_colorize:
         image = numpy.zeros((h * R, w * C, 3), dtype=numpy.float32)
     else:
         image = numpy.zeros((h * R, w * C), dtype=numpy.float32)
-    for i in range (0,tensor.shape[3]):
+    for i in range(0, tensor.shape[3]):
         col, row = i % C, int(i / C)
-        sub_image = tensor_gray_3D_to_image(tensor[:,:,:,i])
+        sub_image = tensor_gray_3D_to_image(tensor[:, :, :, i])
 
         if do_colorize:
             sub_image = tools_image.saturate(sub_image)
-            apply_blue_shift(sub_image,(col+row)%2)
+            apply_blue_shift(sub_image, (col + row) % 2)
 
         if do_colorize:
-            image[h * row:h * row + h, w * col:w * col + w,:] = sub_image[:, :, :]
+            image[h * row : h * row + h, w * col : w * col + w, :] = sub_image[:, :, :]
         else:
-            image[h * row:h * row + h, w * col:w * col + w] = sub_image[:, :]
+            image[h * row : h * row + h, w * col : w * col + w] = sub_image[:, :]
 
-    if do_scale==True:
+    if do_scale == True:
         image -= image.min()
         image *= 255 / image.max()
 
     return image
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def visualize_filters(keras_model, path_out):
 
@@ -166,14 +200,21 @@ def visualize_filters(keras_model, path_out):
             tensor *= 255.0 / tensor.max()  # (W,H,3,N)
 
             if tensor.shape[2] == 3:
-                cv2.imwrite(path_out + 'filter_%03d.png' % i, tensor_color_4D_to_image(tensor))
+                cv2.imwrite(
+                    path_out + "filter_%03d.png" % i, tensor_color_4D_to_image(tensor)
+                )
             else:
-                cv2.imwrite(path_out + 'filter_%03d.png' % i, tensor_gray_4D_to_image(tensor, do_colorize=True))
+                cv2.imwrite(
+                    path_out + "filter_%03d.png" % i,
+                    tensor_gray_4D_to_image(tensor, do_colorize=True),
+                )
 
     return
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def stage_tensors(outputs,path_out,names):
-    if len(outputs)==1:
+def stage_tensors(outputs, path_out, names):
+    if len(outputs) == 1:
         outputs = [outputs]
 
     for i in range(0, len(outputs)):
@@ -182,183 +223,379 @@ def stage_tensors(outputs,path_out,names):
         tensor *= 255.0 / tensor.max()
 
         if len(tensor.shape) == 3:
-            if tensor.shape[2] == 3:  cv2.imwrite(path_out + 'layer_%s.png' % (names[i]), tensor)
-            elif tensor.shape[2] != 3:cv2.imwrite(path_out + 'layer_%s.png' % (names[i]), tensor_gray_3D_to_image(tensor, do_colorize=False))
-        elif len(tensor.shape) == 1:  cv2.imwrite(path_out + 'layer_%s.png' % (names[i]), tools_image.hitmap2d_to_viridis(tensor_gray_1D_to_image(tensor)))
+            if tensor.shape[2] == 3:
+                cv2.imwrite(path_out + "layer_%s.png" % (names[i]), tensor)
+            elif tensor.shape[2] != 3:
+                cv2.imwrite(
+                    path_out + "layer_%s.png" % (names[i]),
+                    tensor_gray_3D_to_image(tensor, do_colorize=False),
+                )
+        elif len(tensor.shape) == 1:
+            cv2.imwrite(
+                path_out + "layer_%s.png" % (names[i]),
+                tools_image.hitmap2d_to_viridis(tensor_gray_1D_to_image(tensor)),
+            )
 
     return
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def visualize_layers(keras_model, filename_input, path_out,need_scale=False):
+def visualize_layers(keras_model, filename_input, path_out, need_scale=False):
     image = cv2.imread(filename_input)
 
     shape = keras_model.input.get_shape().as_list()
-    need_transpose = True if shape[3]!=3 else False
+    need_transpose = True if shape[3] != 3 else False
 
     if need_transpose:
-        H,W = shape[2], shape[3]
-        if H is None: H=64
-        if W is None: W=64
-        image = cv2.resize(image, (H,W))
+        H, W = shape[2], shape[3]
+        if H is None:
+            H = 64
+        if W is None:
+            W = 64
+        image = cv2.resize(image, (H, W))
         image = image.transpose((2, 0, 1))
     else:
-        H,W = shape[1], shape[2]
-        if H is None: H=64
-        if W is None: W=64
-        image = cv2.resize(image, (W,H))
+        H, W = shape[1], shape[2]
+        if H is None:
+            H = 64
+        if W is None:
+            W = 64
+        image = cv2.resize(image, (W, H))
 
-    if need_scale==True:
-        image=normalize(image.astype(numpy.float32))
+    if need_scale == True:
+        image = normalize(image.astype(numpy.float32))
 
-    #print(keras_model.summary())
+    # print(keras_model.summary())
 
     layer_outputs = [layer.output for layer in keras_model.layers][1:]
-    layer_names   = ['%02d_%s'%(i,layer.name) for i, layer in zip(range(len(keras_model.layers)), keras_model.layers)]   [1:]
-    outputs = Model(inputs=keras_model.input, outputs=layer_outputs).predict(numpy.array([image]))
+    layer_names = [
+        "%02d_%s" % (i, layer.name)
+        for i, layer in zip(range(len(keras_model.layers)), keras_model.layers)
+    ][1:]
+    outputs = Model(inputs=keras_model.input, outputs=layer_outputs).predict(
+        numpy.array([image])
+    )
 
-    #if need_scale==True:
+    # if need_scale==True:
     #    outputs = [scale(each) for each in outputs]
 
-    stage_tensors(outputs,path_out,layer_names)
+    stage_tensors(outputs, path_out, layer_names)
 
     return
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def add_de_pool_layer(invmodel, orig_layer_after,input_shape=None):
-    scale = orig_layer_after.input.get_shape().as_list()[1]/orig_layer_after.output.get_shape().as_list()[1]
-    scale = int(scale+0.5)
+def add_de_pool_layer(invmodel, orig_layer_after, input_shape=None):
+    scale = (
+        orig_layer_after.input.get_shape().as_list()[1]
+        / orig_layer_after.output.get_shape().as_list()[1]
+    )
+    scale = int(scale + 0.5)
 
     if input_shape is not None:
         invmodel.add(UpSampling2D(size=(scale, scale), input_shape=input_shape))
     else:
         invmodel.add(UpSampling2D(size=(scale, scale)))
     return invmodel
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def add_de_conv_layer(invmodel,orig_conv_layer,crop=None,input_shape=None):
+def add_de_conv_layer(invmodel, orig_conv_layer, crop=None, input_shape=None):
     N = int(orig_conv_layer.input.get_shape()[3])
 
-    padding=orig_conv_layer.padding
-
+    padding = orig_conv_layer.padding
 
     if input_shape is None:
-        invmodel.add(Conv2DTranspose(N, orig_conv_layer.kernel_size,activation=orig_conv_layer.activation,
-                                     padding=padding,data_format='channels_last'))
+        invmodel.add(
+            Conv2DTranspose(
+                N,
+                orig_conv_layer.kernel_size,
+                activation=orig_conv_layer.activation,
+                padding=padding,
+                data_format="channels_last",
+            )
+        )
     else:
-        invmodel.add(Conv2DTranspose(N, orig_conv_layer.kernel_size,activation=orig_conv_layer.activation,
-                                     padding=padding,data_format='channels_last',
-                                     input_shape=input_shape))
+        invmodel.add(
+            Conv2DTranspose(
+                N,
+                orig_conv_layer.kernel_size,
+                activation=orig_conv_layer.activation,
+                padding=padding,
+                data_format="channels_last",
+                input_shape=input_shape,
+            )
+        )
 
     w = orig_conv_layer.get_weights()
     b = orig_conv_layer.input.get_shape()[3]
-    iw = inverce_weight(w,b)
+    iw = inverce_weight(w, b)
     invmodel.layers[-1].set_weights(iw)
 
     invmodel.add(UpSampling2D(size=orig_conv_layer.strides))
 
     if crop is not None:
-        invmodel.add(Cropping2D( ((0, crop), (0, crop)) ))
+        invmodel.add(Cropping2D(((0, crop), (0, crop))))
     return invmodel
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def import_weight(filename,shape):
+def import_weight(filename, shape):
     image = cv2.imread(filename)
-    weights = image_to_tensor_color_4D(image,shape).astype(numpy.float32)
-    #cv2.imwrite('data/output/filter01.png',tensor_color_4D_to_image(filters))
+    weights = image_to_tensor_color_4D(image, shape).astype(numpy.float32)
+    # cv2.imwrite('data/output/filter01.png',tensor_color_4D_to_image(filters))
     weights /= 255.0
     weights -= 0.5
     weights *= 2
 
     return weights
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def import_bias(n=96):
-    if n==96:
-        B = numpy.array([-0.3463971,0.2838365,-0.49968186,-0.23649067,-0.5688867,-0.6436641,-0.6924773,-0.4955547,-0.23227385,0.25512516,-0.26485363,-0.41346544,-0.43461457,-0.70009106,-0.47496662,-0.47548744,-0.69679964,-0.46574312,-0.52741444,-0.7435926,-0.6915156,-0.50525445,-0.2625096,-0.65133756,-0.4111215,-0.5997434,-0.68655,-0.5016767,-0.72232133,-0.60682845,-0.6017115,-0.49666974,-0.5611206,-0.48387265,-0.6110909,-0.54242045,-0.56991154,-0.43601885,-0.3956422,-0.37117276,0.036626954,-0.22927734,0.0961724,-0.480799,0.020177085,-0.7724009,-0.63782954,-0.5926624,-0.4724126,-0.5151979,-0.7155822,-0.2635522,-0.62939286,-0.3237968,-0.6559588,-0.08852144,-0.63524127,-0.58848786,-0.5521372,-0.32681417,-0.48454055,-0.6135006,-0.6231938,-0.7153859,-0.7460073,-0.5911307,-0.38240275,-0.31587332,-0.6460482,-0.5697083,-0.675176,-0.708902,-0.410006,-0.5047665,-0.5587012,-0.6281784,-0.086676925,-0.5107954,0.17226526,-0.54705405,-0.5593643,-0.55164367,-0.18164437,-0.014679801,-0.2994107,-0.38288164,-0.0946849,-0.09597142,-0.26413,-0.46921661,-0.45871097,-0.6019412,-0.33356422,-0.5627348,-0.39224792,-0.8009203])
+    if n == 96:
+        B = numpy.array(
+            [
+                -0.3463971,
+                0.2838365,
+                -0.49968186,
+                -0.23649067,
+                -0.5688867,
+                -0.6436641,
+                -0.6924773,
+                -0.4955547,
+                -0.23227385,
+                0.25512516,
+                -0.26485363,
+                -0.41346544,
+                -0.43461457,
+                -0.70009106,
+                -0.47496662,
+                -0.47548744,
+                -0.69679964,
+                -0.46574312,
+                -0.52741444,
+                -0.7435926,
+                -0.6915156,
+                -0.50525445,
+                -0.2625096,
+                -0.65133756,
+                -0.4111215,
+                -0.5997434,
+                -0.68655,
+                -0.5016767,
+                -0.72232133,
+                -0.60682845,
+                -0.6017115,
+                -0.49666974,
+                -0.5611206,
+                -0.48387265,
+                -0.6110909,
+                -0.54242045,
+                -0.56991154,
+                -0.43601885,
+                -0.3956422,
+                -0.37117276,
+                0.036626954,
+                -0.22927734,
+                0.0961724,
+                -0.480799,
+                0.020177085,
+                -0.7724009,
+                -0.63782954,
+                -0.5926624,
+                -0.4724126,
+                -0.5151979,
+                -0.7155822,
+                -0.2635522,
+                -0.62939286,
+                -0.3237968,
+                -0.6559588,
+                -0.08852144,
+                -0.63524127,
+                -0.58848786,
+                -0.5521372,
+                -0.32681417,
+                -0.48454055,
+                -0.6135006,
+                -0.6231938,
+                -0.7153859,
+                -0.7460073,
+                -0.5911307,
+                -0.38240275,
+                -0.31587332,
+                -0.6460482,
+                -0.5697083,
+                -0.675176,
+                -0.708902,
+                -0.410006,
+                -0.5047665,
+                -0.5587012,
+                -0.6281784,
+                -0.086676925,
+                -0.5107954,
+                0.17226526,
+                -0.54705405,
+                -0.5593643,
+                -0.55164367,
+                -0.18164437,
+                -0.014679801,
+                -0.2994107,
+                -0.38288164,
+                -0.0946849,
+                -0.09597142,
+                -0.26413,
+                -0.46921661,
+                -0.45871097,
+                -0.6019412,
+                -0.33356422,
+                -0.5627348,
+                -0.39224792,
+                -0.8009203,
+            ]
+        )
     else:
-        B = numpy.zeros(n,numpy.float32)
+        B = numpy.zeros(n, numpy.float32)
     return B
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def construct_filters_2x2x3():
 
-    return [construct_weights_2x2x3(),numpy.zeros(48,numpy.float32)]
+    return [construct_weights_2x2x3(), numpy.zeros(48, numpy.float32)]
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def construct_weights_2x2x3(n=16*3):
-    F = numpy.zeros((2, 2, 3, 16*3))
-    for c,i in zip([0,1,0],[0,16,16*2]):
-        F[:, :, c, i+ 0] = numpy.array([[-1, -1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 1] = numpy.array([[-1, -1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 2] = numpy.array([[-1, -1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 3] = numpy.array([[-1, -1], [+1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 4] = numpy.array([[-1, +1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 5] = numpy.array([[-1, +1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 6] = numpy.array([[-1, +1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 7] = numpy.array([[-1, +1], [+1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 8] = numpy.array([[+1, -1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+ 9] = numpy.array([[+1, -1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+10] = numpy.array([[+1, -1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+11] = numpy.array([[+1, -1], [+1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+12] = numpy.array([[+1, +1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+13] = numpy.array([[+1, +1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+14] = numpy.array([[+1, +1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, i+15] = numpy.array([[+1, +1], [+1, +1]]).astype(numpy.float32)/4.0
+def construct_weights_2x2x3(n=16 * 3):
+    F = numpy.zeros((2, 2, 3, 16 * 3))
+    for c, i in zip([0, 1, 0], [0, 16, 16 * 2]):
+        F[:, :, c, i + 0] = (
+            numpy.array([[-1, -1], [-1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 1] = (
+            numpy.array([[-1, -1], [-1, +1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 2] = (
+            numpy.array([[-1, -1], [+1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 3] = (
+            numpy.array([[-1, -1], [+1, +1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 4] = (
+            numpy.array([[-1, +1], [-1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 5] = (
+            numpy.array([[-1, +1], [-1, +1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 6] = (
+            numpy.array([[-1, +1], [+1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 7] = (
+            numpy.array([[-1, +1], [+1, +1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 8] = (
+            numpy.array([[+1, -1], [-1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 9] = (
+            numpy.array([[+1, -1], [-1, +1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 10] = (
+            numpy.array([[+1, -1], [+1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 11] = (
+            numpy.array([[+1, -1], [+1, +1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 12] = (
+            numpy.array([[+1, +1], [-1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 13] = (
+            numpy.array([[+1, +1], [-1, +1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 14] = (
+            numpy.array([[+1, +1], [+1, -1]]).astype(numpy.float32) / 4.0
+        )
+        F[:, :, c, i + 15] = (
+            numpy.array([[+1, +1], [+1, +1]]).astype(numpy.float32) / 4.0
+        )
 
     return F / 3.0
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-def construct_weights(N,height,width):
-    F = numpy.zeros((height, width, 3, N),dtype=numpy.float32)
+def construct_weights(N, height, width):
+    F = numpy.zeros((height, width, 3, N), dtype=numpy.float32)
 
     for n in range(N):
         for w in range(width):
-            div = 2**(n+1)#2,4,8
+            div = 2 ** (n + 1)  # 2,4,8
 
-            value =2 * (w % div < div//2) - 1
-            F[:,w,:,n]=value
+            value = 2 * (w % div < div // 2) - 1
+            F[:, w, :, n] = value
 
-    return F/4.0
+    return F / 4.0
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def construct_weights_2x2(n=16):
 
-    F = numpy.zeros((2, 2, 3,n))
+    F = numpy.zeros((2, 2, 3, n))
 
-    for c in range (0,3):
-        F[:, :, c,  0] = numpy.array([[-1, -1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  1] = numpy.array([[-1, -1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  2] = numpy.array([[-1, -1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  3] = numpy.array([[-1, -1], [+1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  4] = numpy.array([[-1, +1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  5] = numpy.array([[-1, +1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  6] = numpy.array([[-1, +1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  7] = numpy.array([[-1, +1], [+1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  8] = numpy.array([[+1, -1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c,  9] = numpy.array([[+1, -1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, 10] = numpy.array([[+1, -1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, 11] = numpy.array([[+1, -1], [+1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, 12] = numpy.array([[+1, +1], [-1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, 13] = numpy.array([[+1, +1], [-1, +1]]).astype(numpy.float32)/4.0
-        F[:, :, c, 14] = numpy.array([[+1, +1], [+1, -1]]).astype(numpy.float32)/4.0
-        F[:, :, c, 15] = numpy.array([[+1, +1], [+1, +1]]).astype(numpy.float32)/4.0
+    for c in range(0, 3):
+        F[:, :, c, 0] = numpy.array([[-1, -1], [-1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 1] = numpy.array([[-1, -1], [-1, +1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 2] = numpy.array([[-1, -1], [+1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 3] = numpy.array([[-1, -1], [+1, +1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 4] = numpy.array([[-1, +1], [-1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 5] = numpy.array([[-1, +1], [-1, +1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 6] = numpy.array([[-1, +1], [+1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 7] = numpy.array([[-1, +1], [+1, +1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 8] = numpy.array([[+1, -1], [-1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 9] = numpy.array([[+1, -1], [-1, +1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 10] = numpy.array([[+1, -1], [+1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 11] = numpy.array([[+1, -1], [+1, +1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 12] = numpy.array([[+1, +1], [-1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 13] = numpy.array([[+1, +1], [-1, +1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 14] = numpy.array([[+1, +1], [+1, -1]]).astype(numpy.float32) / 4.0
+        F[:, :, c, 15] = numpy.array([[+1, +1], [+1, +1]]).astype(numpy.float32) / 4.0
 
-    return F/3.0
+    return F / 3.0
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 def construct_filters_2x2(n_filters=16):
 
-    return [construct_weights_2x2()[:,:,:,:n_filters],numpy.zeros(16,numpy.float32)[:n_filters]]
+    return [
+        construct_weights_2x2()[:, :, :, :n_filters],
+        numpy.zeros(16, numpy.float32)[:n_filters],
+    ]
+
+
 # ----------------------------------------------------------------------------------------------------------------------
-def construct_filters(n,height,width):
-    return [construct_weights(n,height,width), numpy.zeros(n, numpy.float32)]
+def construct_filters(n, height, width):
+    return [construct_weights(n, height, width), numpy.zeros(n, numpy.float32)]
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def normalize(y):
-    x=y.copy()
-    x/= 255.0
-    x-= 0.5
-    x*= 2.0
+    x = y.copy()
+    x /= 255.0
+    x -= 0.5
+    x *= 2.0
     return x
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def scale(y):
     x = y.copy()
-    x/= 2.0
+    x /= 2.0
     x += 0.5
     x *= 255.0
     return x
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
-class_names =  '''tench, Tinca tinca
+class_names = """tench, Tinca tinca
 goldfish, Carassius auratus
 great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias
 tiger shark, Galeocerdo cuvieri
@@ -1357,4 +1594,6 @@ earthstar
 hen-of-the-woods, hen of the woods, Polyporus frondosus, Grifola frondosa
 bolete
 ear, spike, capitulum
-toilet tissue, toilet paper, bathroom tissue'''.split("\n")
+toilet tissue, toilet paper, bathroom tissue""".split(
+    "\n"
+)
